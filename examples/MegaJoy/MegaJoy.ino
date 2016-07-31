@@ -20,7 +20,7 @@
                                   |-Vcc (pull ups)
   MCP23017 SDA - Arduino SDA -2k2-|
   
-  D7 (INT6) - MCP23017 INTA+INTB (set to open collector)  
+  D6 (INT6) - MCP23017 INTA+INTB (set to open collector)  
   
   This program is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public

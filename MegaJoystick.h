@@ -1,15 +1,21 @@
 /*
   ExtrJoystick.h
 
-  Copyright (c) 2015, Matthew Heironimus
+  copyright (c) 2016, Piotr Zapart
+  
+  based on/inspired by:  
+
+  - Arduino Joystick library Copyright (c) 2015, Matthew Heironimus
+  - Teensy Extreme Joystick library by Paul Stoffregen/PJRC.com
   
   upgraded to   
 				128 buttons @ 1bit
 				6 axis @ 16bit
 				17 sliders @ 16bit
 				4 hat swiches @4bit
-				
-	by Piotr Zapart, 07-08 2016
+	
+  Default autoSendState is OFF
+  input analog values are uint16_t 
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -50,40 +56,37 @@
 #define SLIDER_DATA_OFFSET		0x1C
 #define HAT_DATA_OFFSET			0x3E
 
-	
+#define SLIDER_ADDR				0x06
+#define AXIS_ADDR				0x00		
+
+#define X_ADDR					0x00
+#define Y_ADDR					0x01
+#define Z_ADDR					0x02
+#define XROT_ADDR				0x03
+#define YROT_ADDR				0x04
+#define ZROT_ADDR				0x05
 	
 //================================================================================
 //================================================================================
-//  Joystick (Gamepad)
+//  Joystick 
 
 class MegaJoystick_
 {
 private:
 	bool     	 autoSendState;
-	uint16_t	 xAxis;
-	uint16_t	 yAxis;
-	uint16_t	 zAxis;
-	uint16_t	 xAxisRotation;
-	uint16_t	 yAxisRotation;
-	uint16_t	 zAxisRotation;
-	uint16_t 	 slider[17];		//17 sliders @16 bit
+	uint16_t 	 analog[23];
 	uint8_t 	 buttons[16];		//128 buttons
 	uint8_t	 	 hatSwitch[4];
 
-	void pasteAnalog16(unsigned int num, unsigned int value, uint16_t *data_ptr) 
-	{
-		if (value > 0xFFFF) value = 0xFFFF;
-		//uint16_t *p = (uint16_t *)(&usb_joystick_data[ANALOG16_DATA_OFFSET]);
-		data_ptr[num] = value;
-		if (autoSendState) sendState();
-	}
-	
+
 public:
 	MegaJoystick_();
 
 	void begin(bool initAutoSendState = false);
 	void end();
 
+	void setAutoSend(bool state);
+	
 	void setXAxis(uint16_t value);
 	void setYAxis(uint16_t value);
 	void setZAxis(uint16_t value);
@@ -91,14 +94,27 @@ public:
 	void setXAxisRotation(uint16_t value);
 	void setYAxisRotation(uint16_t value);
 	void setZAxisRotation(uint16_t value);
-
+	
 	void setButton(uint8_t button, uint8_t value);
 	void pressButton(uint8_t button);
 	void releaseButton(uint8_t button);
 
-	void setSlider(uint8_t slider, uint16_t value);
+	void setSlider(uint8_t sliderNo, uint16_t value);
 	
 	void setHatSwitch(int8_t hatSwitch, int16_t angle);
+
+	uint16_t getXAxis(void);
+	uint16_t getYAxis(void);
+	uint16_t getZAxis(void);
+	
+	uint16_t getXAxisRotation(void);
+	uint16_t getYAxisRotation(void);
+	uint16_t getZAxisRotation(void);
+	
+	bool getButton(uint8_t button);
+	int16_t getHatSwitch(uint8_t hatSwitch);
+	uint16_t getSlider(uint8_t sliderNo);
+	
 
 	void sendState();
 };

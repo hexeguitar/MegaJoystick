@@ -1,7 +1,12 @@
 /*
-  Joystick.cpp
+  MegaJoystick.cpp
+  
+  copyright (c) 2016, Piotr Zapart
+  
+  based on/inspired by:  
 
-  Copyright (c) 2015, Matthew Heironimus
+  - Arduino Joystick library Copyright (c) 2015, Matthew Heironimus
+  - Teensy Extreme Joystick library by Paul Stoffregen/PJRC.com
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -25,97 +30,24 @@
 #define JOYSTICK_REPORT_ID 0x03
 #define JOYSTICK_STATE_SIZE 64
 
-
-/*
-static const uint8_t _hidReportDescriptor[] PROGMEM = {
-  
-	// Joystick
-	0x05, 0x01,			      // USAGE_PAGE (Generic Desktop)
-	0x09, 0x04,			      // USAGE (Joystick)
-	0xa1, 0x01,			      // COLLECTION (Application)
-	0x85, JOYSTICK_REPORT_ID, //   REPORT_ID (3)
-
-	// 32 Buttons
-	0x05, 0x09,			      //   USAGE_PAGE (Button)
-	0x19, 0x01,			      //   USAGE_MINIMUM (Button 1)
-	0x29, 0x20,			      //   USAGE_MAXIMUM (Button 32)
-	0x15, 0x00,			      //   LOGICAL_MINIMUM (0)
-	0x25, 0x01,			      //   LOGICAL_MAXIMUM (1)
-	0x75, 0x01,			      //   REPORT_SIZE (1)
-	0x95, 0x20,			      //   REPORT_COUNT (32)
-	0x55, 0x00,			      //   UNIT_EXPONENT (0)
-	0x65, 0x00,			      //   UNIT (None)
-	0x81, 0x02,			      //   INPUT (Data,Var,Abs)
-
-	// 8 bit Throttle and Steering
-	0x05, 0x02,			      //   USAGE_PAGE (Simulation Controls)
-	0x15, 0x00,			      //   LOGICAL_MINIMUM (0)
-	0x26, 0xff, 0x00,	      //   LOGICAL_MAXIMUM (255)
-	0xA1, 0x00,			      //   COLLECTION (Physical)
-	0x09, 0xBB,			      //     USAGE (Throttle)
-	0x09, 0xBA,			      //     USAGE (Steering)
-	0x75, 0x08,			      //     REPORT_SIZE (8)
-	0x95, 0x02,			      //     REPORT_COUNT (2)
-	0x81, 0x02,			      //     INPUT (Data,Var,Abs)
-	0xc0,				      //   END_COLLECTION
-
-	// Two Hat switches (8 Positions)
-	0x05, 0x01,			      //   USAGE_PAGE (Generic Desktop)
-	0x09, 0x39,			      //   USAGE (Hat switch)
-	0x15, 0x00,			      //   LOGICAL_MINIMUM (0)
-	0x25, 0x07,			      //   LOGICAL_MAXIMUM (7)
-	0x35, 0x00,			      //   PHYSICAL_MINIMUM (0)
-	0x46, 0x3B, 0x01,	      //   PHYSICAL_MAXIMUM (315)
-	0x65, 0x14,			      //   UNIT (Eng Rot:Angular Pos)
-	0x75, 0x04,			      //   REPORT_SIZE (4)
-	0x95, 0x01,			      //   REPORT_COUNT (1)
-	0x81, 0x02,			      //   INPUT (Data,Var,Abs)
-                              
-	0x09, 0x39,			      //   USAGE (Hat switch)
-	0x15, 0x00,			      //   LOGICAL_MINIMUM (0)
-	0x25, 0x07,			      //   LOGICAL_MAXIMUM (7)
-	0x35, 0x00,			      //   PHYSICAL_MINIMUM (0)
-	0x46, 0x3B, 0x01,	      //   PHYSICAL_MAXIMUM (315)
-	0x65, 0x14,			      //   UNIT (Eng Rot:Angular Pos)
-	0x75, 0x04,			      //   REPORT_SIZE (4)
-	0x95, 0x01,			      //   REPORT_COUNT (1)
-	0x81, 0x02,			      //   INPUT (Data,Var,Abs)
-
-	// X, Y, and Z Axis
-	0x15, 0x00,			      //   LOGICAL_MINIMUM (0)
-	0x26, 0xff, 0x00,	      //   LOGICAL_MAXIMUM (255)
-	0x75, 0x08,			      //   REPORT_SIZE (8)
-	0x09, 0x01,			      //   USAGE (Pointer)
-	0xA1, 0x00,			      //   COLLECTION (Physical)
-	0x09, 0x30,		          //     USAGE (x)
-	0x09, 0x31,		          //     USAGE (y)
-	0x09, 0x32,		          //     USAGE (z)
-	0x09, 0x33,		          //     USAGE (rx)
-	0x09, 0x34,		          //     USAGE (ry)
-	0x09, 0x35,		          //     USAGE (rz)
-	0x95, 0x06,		          //     REPORT_COUNT (6)
-	0x81, 0x02,		          //     INPUT (Data,Var,Abs)
-	0xc0,				      //   END_COLLECTION
-                              
-	0xc0				      // END_COLLECTION
-};
-*/
-
-uint8_t usb_joystick_data[64];
-
 static const uint8_t _hidReportDescriptor[] PROGMEM = 
 {
- 	0x05, 0x01,                     // Usage Page (Generic Desktop)
-	0x09, 0x04,                     // Usage (Joystick)
-	0xA1, 0x01,                     // Collection (Application)
+	
+		// Joystick
+	0x05, 0x01,			      		// USAGE_PAGE (Generic Desktop)
+	0x09, 0x04,			      		// USAGE (Joystick)
+	0xa1, 0x01,			      		// COLLECTION (Application)
+	0x85, JOYSTICK_REPORT_ID, 		//   REPORT_ID (3)
+
 	// 128 Buttons
+	0x05, 0x09,			      		// USAGE_PAGE (Button)
 	0x15, 0x00,                     // Logical Minimum (0)
 	0x25, 0x01,                     // Logical Maximum (1)
 	0x75, 0x01,                     // Report Size (1)
 	0x95, 0x80,                     // Report Count (128)
-	0x05, 0x09,                     // Usage Page (Button)
 	0x19, 0x01,                     // Usage Minimum (Button #1)
 	0x29, 0x80,                     // Usage Maximum (Button #128)
+	0x65, 0x00,			     		// UNIT (None)
 	0x81, 0x02,                     // Input (variable,absolute)
 	//6 x axis + 17 x slider
 	0x05, 0x01,                     // Usage Page (Generic Desktop)
@@ -167,71 +99,46 @@ static const uint8_t _hidReportDescriptor[] PROGMEM =
 	0x81, 0x42,                     // Input (variable,absolute,null_state)
 	0xC0                            // End Collection
 };
-
+//================================================================================
 MegaJoystick_::MegaJoystick_()
 {
 	// Setup HID report structure
 	static HIDSubDescriptor node(_hidReportDescriptor, sizeof(_hidReportDescriptor));
 	HID().AppendDescriptor(&node);
 	
-	// Initalize State
-	xAxis = 0;
-	yAxis = 0;
-	zAxis = 0;
-	xAxisRotation = 0;
-	yAxisRotation = 0;
-	zAxisRotation = 0;
-	buttons[0] = 0;
-	buttons[1] = 0;
-	buttons[2] = 0;
-	buttons[3] = 0;
-	buttons[4] = 0;
-	buttons[5] = 0;
-	buttons[6] = 0;
-	buttons[7] = 0;
-	buttons[8] = 0;
-	buttons[9] = 0;
-	buttons[10] = 0;
-	buttons[11] = 0;
-	buttons[12] = 0;
-	buttons[13] = 0;
-	buttons[14] = 0;
-	buttons[15] = 0;	
-	slider[0] = 0;
-	slider[1] = 0;
-	slider[2] = 0;
-	slider[3] = 0;
-	slider[4] = 0;
-	slider[5] = 0;
-	slider[6] = 0;
-	slider[7] = 0;
-	slider[8] = 0;
-	slider[9] = 0;
-	slider[10] = 0;
-	slider[11] = 0;
-	slider[12] = 0;
-	slider[13] = 0;
-	slider[14] = 0;
-	slider[15] = 0;
-	slider[16] = 0;
-	//throttle = 0;
-	//rudder = 0;
+	uint8_t i; 
+	//init axis & rotation
+	for (i=AXIS_ADDR;i<SLIDER_ADDR;i++)
+	{
+		analog[i] = 32768;
+	}
+	//init sliders to 0
+	for (i=SLIDER_ADDR;i<24;i++)
+	{
+		analog[i] = 0;
+	}
+	
 	hatSwitch[0] = -1;
 	hatSwitch[1] = -1;
 	hatSwitch[2] = -1;
 	hatSwitch[3] = -1;
 }
-
+//================================================================================
 void MegaJoystick_::begin(bool initAutoSendState)
 {
 	autoSendState = initAutoSendState;
 	sendState();
 }
-
+//================================================================================
 void MegaJoystick_::end()
 {
 }
 
+void MegaJoystick_::setAutoSend(bool state)
+{
+	autoSendState = state;
+}
+//================================================================================
 void MegaJoystick_::setButton(uint8_t button, uint8_t value)
 {
 	if (value == 0)
@@ -243,68 +150,110 @@ void MegaJoystick_::setButton(uint8_t button, uint8_t value)
 		pressButton(button);
 	}
 }
-
+//================================================================================
 /*
 	button array = 16x8bit
-	input = 0-127 >> 5 = 0-15 array index
+	input = 0-127 >> 3 = 0-15 array index
 	bit mask = 0x07 
 
 */
 void MegaJoystick_::pressButton(uint8_t button)
 {
 	if (button>127)	return;
-	bitSet(buttons[button>>3], button&0x07);	//
+	bitSet(buttons[button>>3], button&0x07);
 	if (autoSendState) sendState();
 }
+//================================================================================
 void MegaJoystick_::releaseButton(uint8_t button)
 {
 	if (button>127)	return;
 	bitClear(buttons[button>>3], button&0x07);
 	if (autoSendState) sendState();
 }
-
-void MegaJoystick_::setSlider(uint8_t sliderNo, uin16_t value)
+//================================================================================
+bool MegaJoystick_::getButton(uint8_t button)
 {
-	if (sliderNo > 16) return;
-	slider[sliderNo] = value;
+	return (buttons[button>>3] & (_BV(button&0x07)) ? true: false);
+}
+//================================================================================
+// --- SLIDERS ---
+void MegaJoystick_::setSlider(uint8_t sliderNo, uint16_t value)
+{
+	if (sliderNo >16) return;
+	analog[SLIDER_ADDR+16-sliderNo] = value;
 }
 
-
+uint16_t MegaJoystick_::getSlider(uint8_t sliderNo)
+{	
+	return analog[SLIDER_ADDR+16-sliderNo];
+}
+//================================================================================
+// --- X AXIS ---
 void MegaJoystick_::setXAxis(uint16_t value)
 {
-	xAxis = value;
+	analog[X_ADDR] = value;
 	if (autoSendState) sendState();
 }
+//================================================================================
+uint16_t MegaJoystick_::getXAxis(void)
+{
+	return analog[X_ADDR];
+}
+//================================================================================
 void MegaJoystick_::setYAxis(uint16_t value)
 {
-	yAxis = value;
+	analog[Y_ADDR] = value;
 	if (autoSendState) sendState();
 }
+uint16_t MegaJoystick_::getYAxis(void)
+{
+	return analog[Y_ADDR];
+}
+//================================================================================
 void MegaJoystick_::setZAxis(uint16_t value)
 {
-	zAxis = value;
+	analog[Z_ADDR] = value;
 	if (autoSendState) sendState();
 }
-
+uint16_t MegaJoystick_::getZAxis(void)
+{
+	return analog[Z_ADDR];
+}
+//================================================================================
 void MegaJoystick_::setXAxisRotation(uint16_t value)
 {
-	xAxisRotation = value;
+	analog[XROT_ADDR] = value;
 	if (autoSendState) sendState();
 }
+uint16_t MegaJoystick_::getXAxisRotation(void)
+{
+	return analog[XROT_ADDR];
+}
+//================================================================================
 void MegaJoystick_::setYAxisRotation(uint16_t value)
 {
-	yAxisRotation = value;
+	analog[YROT_ADDR] = value;
 	if (autoSendState) sendState();
 }
+uint16_t MegaJoystick_::getYAxisRotation(void)
+{
+	return analog[YROT_ADDR];
+}
+//================================================================================
 void MegaJoystick_::setZAxisRotation(uint16_t value)
 {
-	zAxisRotation = value;
+	analog[ZROT_ADDR] = value;
 	if (autoSendState) sendState();
 }
-
+uint16_t MegaJoystick_::getZAxisRotation(void)
+{
+	return analog[ZROT_ADDR];
+}
+//================================================================================
 void MegaJoystick_::setHatSwitch(int8_t hatSwitchIndex, int16_t angle)
 {
-	uint16_t value = 0x0F;
+	uint8_t value = 0x0F;
+	if (angle < 0)	value = 8;
 	if (angle > 0 && angle < 23) value = 0;
 	else if (angle < 68) value = 1;
 	else if (angle < 113) value = 2;
@@ -318,7 +267,15 @@ void MegaJoystick_::setHatSwitch(int8_t hatSwitchIndex, int16_t angle)
 	hatSwitch[hatSwitchIndex % 4] = value;
 	if (autoSendState) sendState();
 }
+int16_t MegaJoystick_::getHatSwitch(uint8_t hatSwitchIndex)
+{
+	int16_t angle;
+	if (hatSwitch[hatSwitchIndex % 4]) 	angle = hatSwitch[hatSwitchIndex % 4]*45;
+	else								angle = -1;
+	return angle;
+}
 
+//================================================================================
 /*
 	USB data packet:						Addr:
 	16 byte = 128 buttons					0x00
@@ -333,12 +290,10 @@ void MegaJoystick_::setHatSwitch(int8_t hatSwitchIndex, int16_t angle)
 
 */
 
-
 void MegaJoystick_::sendState()
 {
 	uint8_t data[JOYSTICK_STATE_SIZE];
 	uint8_t i;
-	uint16_t *ptr_start;
 	
 	//copy 16 bytes with button states
 	for (i=BUTTON_DATA_OFFSET;i<16;i++)
@@ -347,19 +302,12 @@ void MegaJoystick_::sendState()
 	}
 	
 	//Axis
-	ptr_start = (uint16__t *)(&data[AXIS_DATA_OFFSET]);
-	pasteAnalog16(0, xAxis,ptr_start); 				//xAxis
-	pasteAnalog16(1, yAxis,ptr_start); 				//yAxis
-	pasteAnalog16(2, zAxis,ptr_start); 				//zAxis
-	pasteAnalog16(3, xAxisRotation,ptr_start); 		//xAxis
-	pasteAnalog16(4, yAxisRotation,ptr_start); 		//yAxis
-	pasteAnalog16(5, zAxisRotation,ptr_start); 		//zAxis
-	//sliders
-	ptr_start = (uint16__t *)(&data[SLIDER_DATA_OFFSET]);
-	for (i = 0, i<17, i++)
+	for (i=0;i<24;i++)
 	{
-		pasteAnalog16(i, slider[i],ptr_start); 	
+		data[(AXIS_DATA_OFFSET+(i<<1))] = analog[i];
+		data[(AXIS_DATA_OFFSET+(i<<1)+1)] = analog[i]>>8;
 	}
+	
 	//HAT switches, 2 bytes
 	//H3H2H1H0
 	
