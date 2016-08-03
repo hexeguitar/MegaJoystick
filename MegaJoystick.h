@@ -98,10 +98,17 @@ public:
 	void setButton(uint8_t button, uint8_t value);
 	void pressButton(uint8_t button);
 	void releaseButton(uint8_t button);
+	
+	void setButtonBank8(uint8_t bank, uint8_t buttonStates);
+	void setButtonBank16(uint8_t bank, uint16_t buttonStates);		//useful when reading out data from shift registers
 
 	void setSlider(uint8_t sliderNo, uint16_t value);
 	
-	void setHatSwitch(int8_t hatSwitch, int16_t angle);
+	void setHatSwitchDg(int8_t hatSwitchIndex, int16_t angle);
+	void setHatSwitch(int8_t hatSwitchIndex, int btnUp, int btnL, int btnDwn, int btnR);
+	void set2HatSwitch(int8_t hatSwitchIndex, uint8_t data);
+	void set4HatSwitch(uint16_t data);
+	void setHatSwitchAnalog(int8_t hatSwitchIndex, int8_t xPin, int8_t yPin, uint16_t threshold);
 
 	uint16_t getXAxis(void);
 	uint16_t getYAxis(void);

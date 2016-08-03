@@ -25,10 +25,35 @@
 
 #include "MegaJoystick.h"
 
+
 #if defined(_USING_HID)
 
 #define JOYSTICK_REPORT_ID 0x03
 #define JOYSTICK_STATE_SIZE 64
+
+#define HAT_BIT_UP		0
+#define HAT_BIT_RIGHT	1
+#define HAT_BIT_DOWN	2
+#define HAT_BIT_LEFT	3
+
+static const int8_t _hat_decoder[13] PROGMEM =
+{
+	8,	//OFF
+	0,	//UP
+	2,	//RIGHT
+	1,	//UP+RIGHT
+	4,	//DOWN
+	8,	//OFF
+	3,	//DOWN+RIGHT
+	8,	//OFF
+	6,	//LEFT
+	7,	//UP+LEFT
+	8,	//OFF
+	8,	//OFF
+	5	//DOWN+LEFT
+};
+
+
 
 static const uint8_t _hidReportDescriptor[] PROGMEM = 
 {
@@ -118,10 +143,10 @@ MegaJoystick_::MegaJoystick_()
 		analog[i] = 0;
 	}
 	
-	hatSwitch[0] = -1;
-	hatSwitch[1] = -1;
-	hatSwitch[2] = -1;
-	hatSwitch[3] = -1;
+	hatSwitch[0] = 0x0F;
+	hatSwitch[1] = 0x0F;
+	hatSwitch[2] = 0x0F;
+	hatSwitch[3] = 0x0F;
 }
 //================================================================================
 void MegaJoystick_::begin(bool initAutoSendState)
@@ -152,8 +177,8 @@ void MegaJoystick_::setButton(uint8_t button, uint8_t value)
 }
 //================================================================================
 /*
-	button array = 16x8bit
-	input = 0-127 >> 3 = 0-15 array index
+	button array = 16 banks 8bit each
+	single input = 0-127 >> 3 = 0-15 array index
 	bit mask = 0x07 
 
 */
@@ -174,6 +199,31 @@ void MegaJoystick_::releaseButton(uint8_t button)
 bool MegaJoystick_::getButton(uint8_t button)
 {
 	return (buttons[button>>3] & (_BV(button&0x07)) ? true: false);
+}
+//================================================================================
+//write a 16bit word of button data directly. Useful when using IO expanfers like MCP23017
+void MegaJoystick_::setButtonBank16(uint8_t bank, uint16_t buttonStates)
+{
+	if (bank>15)	return;
+	if (bank>14)			//write only the 1st 8 bits
+	{
+		buttons[bank] = (uint8_t) buttonStates;
+	}
+	else
+	{
+		buttons[bank] = (uint8_t) buttonStates;
+		buttons[bank+1] = (uint8_t) (buttonStates>>8);
+	}
+	if (autoSendState) sendState();
+}
+//================================================================================
+//write an 8bit word of button data directly. Useful when using IO expanfers like PCF8574, 
+// shift registers and so on
+void MegaJoystick_::setButtonBank8(uint8_t bank, uint8_t buttonStates)
+{
+	if (bank>15)		return;
+	else				buttons[bank] = buttonStates;
+	if (autoSendState) sendState();
 }
 //================================================================================
 // --- SLIDERS ---
@@ -250,11 +300,12 @@ uint16_t MegaJoystick_::getZAxisRotation(void)
 	return analog[ZROT_ADDR];
 }
 //================================================================================
-void MegaJoystick_::setHatSwitch(int8_t hatSwitchIndex, int16_t angle)
+// Input = angle in degrees (0-360)
+void MegaJoystick_::setHatSwitchDg(int8_t hatSwitchIndex, int16_t angle)
 {
 	uint8_t value = 0x0F;
 	if (angle < 0)	value = 8;
-	if (angle > 0 && angle < 23) value = 0;
+	if (angle >= 0 && angle < 23) value = 0;
 	else if (angle < 68) value = 1;
 	else if (angle < 113) value = 2;
 	else if (angle < 158) value = 3;
@@ -267,11 +318,106 @@ void MegaJoystick_::setHatSwitch(int8_t hatSwitchIndex, int16_t angle)
 	hatSwitch[hatSwitchIndex % 4] = value;
 	if (autoSendState) sendState();
 }
+//================================================================================
+//Input = 4 separate button inputs
+// Caution!!! Active low inputs!!!
+void MegaJoystick_::setHatSwitch(int8_t hatSwitchIndex, int btnUp, int btnL, int btnDwn, int btnR)
+{
+	uint8_t input = 0;
+	
+	if (digitalRead(btnUp) == LOW)	bitSet(input,HAT_BIT_UP);
+	else							bitClear(input,HAT_BIT_UP);
+	if (digitalRead(btnR) == LOW)	bitSet(input,HAT_BIT_RIGHT);
+	else							bitClear(input,HAT_BIT_RIGHT);
+	if (digitalRead(btnDwn)==LOW)	bitSet(input,HAT_BIT_DOWN);
+	else							bitClear(input,HAT_BIT_DOWN);
+	if (digitalRead(btnL) == LOW)	bitSet(input,HAT_BIT_LEFT);
+	else							bitClear(input,HAT_BIT_LEFT);
+	
+	if (input>12)	input = 0;							//only 13 bytes in hat decoder array
+	hatSwitch[hatSwitchIndex % 4] = pgm_read_byte_near(&_hat_decoder[input]);
+	if (autoSendState) sendState();	
+}
+//================================================================================
+// assuming 2 HATs are connected to one 8bit port/groupoped into 8bit byte
+// (Right, Down, Left, Up, Hat0 Hat1)
+// 7   6   5   4   3   2   1   0
+// R1  D1  L1  U1  R0  D0  L0  U0
+
+void MegaJoystick_::set2HatSwitch(int8_t hatSwitchIndex, uint8_t data)
+{
+	uint8_t index1,index2;
+	
+	if (hatSwitchIndex>3)	return;
+	
+	index1 = data&0x0F;
+	index2 = (data&0xF0)>>4;
+	
+	if (index1 > 12) index1 = 0;			//safety first
+	if (index2 > 12) index2 = 0;			//decoder array is only 13 bytes long
+	
+	hatSwitch[hatSwitchIndex] = pgm_read_byte_near(&_hat_decoder[index1]);
+	
+	if (hatSwitchIndex<3)			
+	{
+		hatSwitch[hatSwitchIndex+1] = pgm_read_byte_near(&_hat_decoder[index2]);
+	}
+	if (autoSendState) sendState();	
+}
+//================================================================================
+// assuming 4 HATs are connected to one 16bit port/groupped into 16bit word
+// (Right, Down, Left, Up, Hat0 Hat1,Hat2,Hat3)
+// F   E   D   C   B   A   9   8   7   6   5   4   3   2   1   0
+// R3  D3  L3  U3  R2  D2  L2  U2  R1  D1  L1  U1  R0  D0  L0  U0
+void MegaJoystick_::set4HatSwitch(uint16_t data)
+{
+	uint8_t i, index;
+	
+	for (i=0; i<4; i++)
+	{
+		index = data & 0x0F;
+		if (index>12)	index = 0;
+		hatSwitch[i] = pgm_read_byte_near(&_hat_decoder[index]);
+		data >>= 4;
+	}
+	if (autoSendState) sendState();	
+}
+//================================================================================
+// using gameboy mini joystick as HAT switch, reqzured two ADC inputs  
+void MegaJoystick_::setHatSwitchAnalog(int8_t hatSwitchIndex, int8_t xPin, int8_t yPin, uint16_t threshold)
+{
+	uint16_t x = 0, y = 0;
+	uint8_t index = 0;
+	x = analogRead(xPin);
+	y = analogRead(yPin);
+	if (threshold > 10)	threshold = 10;
+
+	threshold = map(threshold,0,10,100,400);
+	
+	if (x<threshold)				bitSet(index,HAT_BIT_LEFT);			//Left pressed
+	else if (x>(1023-threshold))	bitSet(index,HAT_BIT_RIGHT);		//Right pressed
+	else
+	{
+									bitClear(index,HAT_BIT_LEFT);		//both
+									bitClear(index,HAT_BIT_RIGHT);		//released
+	}
+	if (y<threshold)				bitSet(index,HAT_BIT_DOWN);			//down pressed
+	else if (y>(1023-threshold)) 	bitSet(index,HAT_BIT_UP);			//up pressed
+	else
+	{
+									bitClear(index,HAT_BIT_DOWN);		//both 
+									bitClear(index,HAT_BIT_UP);			//released
+	}
+	if (index>12)	index = 0;
+	hatSwitch[hatSwitchIndex % 4] = pgm_read_byte_near(&_hat_decoder[index]);
+	if (autoSendState) sendState();	
+}
+
 int16_t MegaJoystick_::getHatSwitch(uint8_t hatSwitchIndex)
 {
-	int16_t angle;
-	if (hatSwitch[hatSwitchIndex % 4]) 	angle = hatSwitch[hatSwitchIndex % 4]*45;
-	else								angle = -1;
+	int16_t angle = -1;
+	
+	if (hatSwitch[hatSwitchIndex % 4] != 8) 	angle = hatSwitch[hatSwitchIndex % 4]*45;
 	return angle;
 }
 
@@ -311,8 +457,8 @@ void MegaJoystick_::sendState()
 	//HAT switches, 2 bytes
 	//H3H2H1H0
 	
-	data[HAT_DATA_OFFSET] = (hatSwitch[3]<<4)|(0x0F & hatSwitch[2]);
-	data[HAT_DATA_OFFSET+1] = (hatSwitch[1]<<4)|(0x0F & hatSwitch[0]);
+	data[HAT_DATA_OFFSET] = ((hatSwitch[2]&0x0F)<<4)|(0x0F & hatSwitch[3]);
+	data[HAT_DATA_OFFSET+1] = ((hatSwitch[0]&0x0F)<<4)|(0x0F & hatSwitch[1]);
 	
 	// HID().SendReport(Report number, array of values in same order as HID descriptor, length)
 	HID().SendReport(JOYSTICK_REPORT_ID, data, JOYSTICK_STATE_SIZE); 

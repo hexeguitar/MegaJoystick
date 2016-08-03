@@ -1,0 +1,46 @@
+#######################################
+# Syntax Coloring Map For Keyboard
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+MegaJoystick	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+begin				KEYWORD2
+end					KEYWORD2
+setAutoSend			KEYWORD2
+setXAxis			KEYWORD2
+setYAxis			KEYWORD2
+setZAxis			KEYWORD2
+setXAxisRotation	KEYWORD2
+setYAxisRotation	KEYWORD2
+setZAxisRotation	KEYWORD2
+setButton			KEYWORD2
+pressButton			KEYWORD2
+releaseButton		KEYWORD2
+setButtonBank8		KEYWORD2
+setButtonBank16		KEYWORD2
+setSlider			KEYWORD2
+setHatSwitch		KEYWORD2
+set4HatSwitch		KEYWORD2
+getXAxis			KEYWORD2
+getYAxis			KEYWORD2
+getZAxis			KEYWORD2
+getXAxisRotation	KEYWORD2
+getYAxisRotation	KEYWORD2
+getZAxisRotation	KEYWORD2
+getButton			KEYWORD2
+getHAtSwitch		KEYWORD2
+getSlider			KEYWORD2
+sendState			KEYWORD2
+
+
+#######################################
+# Constants (LITERAL1)
+#######################################

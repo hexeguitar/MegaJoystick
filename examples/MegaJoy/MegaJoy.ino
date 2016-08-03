@@ -20,7 +20,7 @@
                                   |-Vcc (pull ups)
   MCP23017 SDA - Arduino SDA -2k2-|
   
-  D6 (INT6) - MCP23017 INTA+INTB (set to open collector)  
+  D7 (INT6) - MCP23017 INTA+INTB (set to open collector)  
   
   This program is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -38,7 +38,7 @@
 */
 
 
-
+#include <arduino.h>
 #include <MegaJoystick.h>
 #include <Wire.h>
 #include <BasicTerm.h>
@@ -134,8 +134,22 @@ uint16_t readMCP23017(int8_t slaveAddr)
 	128 buttons, 16 buttons pro MCP23017 = 8 banks
 */
 
+//3 rodzaje odczytywania stanu  przyciskow
+// pojedynczo, w 8 bitowym bloku i 16 bitowym bloku
+// odkomentowac jedna z ponizszych linii
+//#define BUTTON_SINGLE_READ
+//#define BUTTON_8BIT_READ
+#define BUTTON_16BIT_READ
+
+
+
 void updateJoyButtons(void)
 {
+
+	
+	// czytanie stanu przyciskow pojedynczo
+#ifdef BUTTON_SINGLE_READ
+
 	uint8_t i;
 	uint16_t btnBank[8];
 	
@@ -144,8 +158,8 @@ void updateJoyButtons(void)
 	// ...
 	// btnBank[7] = readMCP23017(MCP8_SLAVE_ADDR);
 	
-	Joystick.setAutoSend(false);
-	
+	Joystick.setAutoSend(false);		//wylaczamy autosend, bedzie wyslany jeden raz na koncu
+
 	for (i=0; i<16; i++)
 	{
 		if (btnBank[0] & (1<<i))	Joystick.setButton(i,1);
@@ -168,6 +182,22 @@ void updateJoyButtons(void)
 	}
 	Joystick.sendState();
 	Joystick.setAutoSend(true);
+#endif
+
+	// 8 bitowy blok, dla przykladu jeden z portow pierwszego MCO23017
+#ifdef 	BUTTON_8BIT_READ
+	Joystick.setButtonBank8(0,readMCP23017(MCP1_SLAVE_ADDR));		//zapisuje bank 0
+	Joystick.setButtonBank8(1,(readMCP23017(MCP1_SLAVE_ADDR))>>8);	//zapisuje bank 1
+	//setButtonBank8(2,readMCP23017(MCP2_SLAVE_ADDR));		//zapisuje bank 0
+	//setButtonBank8(3,(readMCP23017(MCP2_SLAVE_ADDR))>>8);	//zapisuje bank 1
+#endif
+
+	// 16 bitowy blok
+#ifdef 	BUTTON_16BIT_READ
+	Joystick.setButtonBank16(0,readMCP23017(MCP1_SLAVE_ADDR));		//zapisuje bank 0 i 1
+	//setButtonBank16(0,readMCP23017(MCP2_SLAVE_ADDR));		//zapisuje bank 2 i 3
+#endif
+
 }
 // -------------------------------------------------------------------------------------
 void drawUARTbargraph(uint8_t row, uint8_t column, uint16_t value)
@@ -214,14 +244,20 @@ void  sendUARTreport(void)
 	
 	term.set_color(BT_WHITE, BT_BLACK);
 	
-	drawUARTbargraph(12,9, Joystick.getXAxis());
-	drawUARTbargraph(13,9, Joystick.getYAxis());
-	drawUARTbargraph(14,9, Joystick.getZAxis());
-	drawUARTbargraph(15,9, Joystick.getXAxisRotation());
-	drawUARTbargraph(16,9, Joystick.getYAxisRotation());
-	drawUARTbargraph(17,9, Joystick.getZAxisRotation());
-	drawUARTbargraph(18,9, Joystick.getSlider(0));
-	drawUARTbargraph(19,9, Joystick.getSlider(1));
+	drawUARTbargraph(13,9, Joystick.getXAxis());
+	drawUARTbargraph(14,9, Joystick.getYAxis());
+	drawUARTbargraph(15,9, Joystick.getZAxis());
+	drawUARTbargraph(16,9, Joystick.getXAxisRotation());
+	drawUARTbargraph(17,9, Joystick.getYAxisRotation());
+	drawUARTbargraph(18,9, Joystick.getZAxisRotation());
+	drawUARTbargraph(19,9, Joystick.getSlider(0));
+	drawUARTbargraph(20,9, Joystick.getSlider(1));
+	term.position(21,9); term.print(Joystick.getHatSwitch(0));term.print(F("   "));
+	term.position(22,9); term.print(Joystick.getHatSwitch(1));term.print(F("   "));
+	term.position(23,9); term.print(Joystick.getHatSwitch(2));term.print(F("   "));
+	term.position(24,9); term.print(Joystick.getHatSwitch(3));term.print(F("   "));
+	
+	
 }
 // -------------------------------------------------------------------------------------
 void drawUARTstartup(void)
@@ -240,7 +276,7 @@ void drawUARTstartup(void)
 	term.position(2,0);
 	term.print(F("0 1 2 3 4 5 6 7 8 9 A B C D E F\t"));
 	
-	term.position(11,0);
+	term.position(12,0);
 	term.println(F("Axis:\t"));
 	term.println(F("X=\t"));
 	term.println(F("Y=\t"));
@@ -250,6 +286,11 @@ void drawUARTstartup(void)
 	term.println(F("Zrot=\t"));
 	term.println(F("Slider0=\t"));
 	term.println(F("Slider1=\t"));
+	term.println(F("HAT0=\t"));
+	term.println(F("HAT1=\t"));
+	term.println(F("HAT2=\t"));
+	term.println(F("HAT3=\t"));
+	
 }
 // -------------------------------------------------------------------------------------
 // INT6 interrupt, ktos cos wcisnal
@@ -262,11 +303,17 @@ ISR(INT6_vect)
 
 void setup() 
 {
-	// INT6 - zaimplementowany "na piechote", attachInterrupt() go nie obsluguje
+	// INT6 
 	pinMode(7,INPUT_PULLUP);
 	digitalWrite(7,HIGH);
 	EICRB |= (1<<ISC61);//|(1<<ISC60); 	// wyzwalane zboczem opadajacym
 	EIMSK |= (1<<INT6); 				// uruchom przerwanie
+  
+	//Piny uzyte go testowania HAT bez uzycia MCP23017
+	pinMode(6,INPUT_PULLUP);
+	pinMode(5,INPUT_PULLUP);
+	pinMode(4,INPUT_PULLUP);
+	pinMode(3,INPUT_PULLUP);
   
 	Serial1.begin(115200);
 	while (!Serial1);
@@ -294,18 +341,80 @@ void loop()
 	}
 
 	//analog inputs
+	
+	
 	Joystick.setXAxis(analogRead(0)<<6);	//X = analog 0
 	Joystick.setYAxis(analogRead(1)<<6);	//X = analog 0
 	Joystick.setZAxis(analogRead(2)<<6);	//X = analog 0
 	
 	Joystick.setXAxisRotation((analogRead(0)<<6)+8192);	//Xrot = analog 0 przesuniete o 8192
-	Joystick.setYAxisRotation((analogRead(1)<<6)+8192);	//Xrot = analog 0 przesuniete o 8192
-	Joystick.setZAxisRotation((analogRead(2)<<6)+8192);	//Xrot = analog 0 przesuniete o 8192
+	Joystick.setYAxisRotation((analogRead(1)<<6)+8192);	//Yrot = analog 0 przesuniete o 8192
+	Joystick.setZAxisRotation((analogRead(2)<<6)+8192);	//Zrot = analog 0 przesuniete o 8192
 	
 	Joystick.setSlider(0,(analogRead(3)<<6));
 	Joystick.setSlider(1,(analogRead(3)<<6));
+
+	
+	// ##########  HATs ###########
+	// 5 sposobow uaktualniania stanu HATow
+	// odkomentowac jedna z ponizszych deklaracji 
+//#define HAT_TEST_DEGREE
+//#define HAT_TEST_BUTTON_LIST
+//#define HAT_TEST_8BIT
+//#define HAT_TEST_16BIT	
+#define HAT_TEST_ANALOG
+	
+#ifdef HAT_TEST_DEGREE	
+	//### Metoda 1 ### 
+	//Jako parametr wejsciowy funkcja przyjmuje numer HATa (0-3) i kat w stopniach, (zakres 0-360, -1 odpowiada OFF)
+	//przyklad czyta analoghowa wartosc wejscia A0, mapuje ja na zakres -1 ... 360 i ustawia HATy 
+	int16_t angle = analogRead(0);
+	angle = map(angle,0,1023,0,360);
+	if (angle < 5)	angle = -1;
+
+		Joystick.setHatSwitchDg(0,angle);
+	
+#endif
+#ifdef HAT_TEST_BUTTON_LIST
+	//### Metoda 2 ###
+	// funkcja przyjmuje numer HATa i nuery pinow czterech przyciskow w kolejnowsci gora, prawo, dol, lewo
+	// pamietac o odpowiednim ustawieniu wejsc! input+pullup
+	// niezbyt efektywna w metoda, uzywac jesli nie ma innej opcji
+	Joystick.setHatSwitch(0,6,5,4,3);
+	Joystick.setHatSwitch(1,6,5,4,3);
+	Joystick.setHatSwitch(2,6,5,4,3);
+	Joystick.setHatSwitch(3,6,5,4,3);
+#endif	
+#ifdef HAT_TEST_8BIT
+	//### Metoda 3 ###
+	// sluzy do jednoczesnego odcyztania dwoch HATow podlaczonych do 8bitowego portu
+	// np polowa MCP23017.
+	//	Zakladamy, ze 2 HATy podlaczone sa do jednego MCP23017 w sposob opisany ponizej:
+	//(Right, Down, Left, Up, Hat0 Hat1)
+	// 7   6   5   4   3   2   1   0
+	// R1  D1  L1  U1  R0  D0  L0  U0
+	Joystick.setHatSwitch(0,readMCP23017(MCP1_SLAVE_ADDR));		//wpisane beda HAT0 i HAT1
+	Joystick.setHatSwitch(2,readMCP23017(MCP1_SLAVE_ADDR)>>8);	// HAT2 i HAT3
+#endif
+#ifdef HAT_TEST_16BIT
+	//### Metoda 4 ###
+	//Zakladamy, ze 4 HATy podlaczone sa do jednego MCP23017 w sposob opisany ponizej:
+	//(Right, Down, Left, Up, Hat0 Hat1,Hat2,Hat3)
+	//F   E   D   C   B   A   9   8   7   6   5   4   3   2   1   0
+	//R3  D3  L3  U3  R2  D2  L2  U2  R1  D1  L1  U1  R0  D0  L0  U0
+	Joystick.set4HatSwitch(readMCP23017(MCP1_SLAVE_ADDR));
+#endif
+#ifdef HAT_TEST_ANALOG
+	//### Metoda 5 ###
+	//analogowy mini joystick uzyty jako HAT switch. Wymagane dwa wejscia analogowe
+	//argumenty: 
+	//numer HATa, analogowy pin osi X (lewo/prawo), analogowy pin osi Y (gora/dol), prog zadzialania 0-10
+	Joystick.setHatSwitchAnalog(0,0,1,8);	//HAT0, A0=x, A1=y, prog = 8
 	
 
+#endif
+	
+	
 	
 #ifdef DEBUG_UART	
 	sendUARTreport();
