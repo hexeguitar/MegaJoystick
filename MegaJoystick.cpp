@@ -339,7 +339,7 @@ void MegaJoystick_::setHatSwitch(int8_t hatSwitchIndex, int btnUp, int btnL, int
 	if (autoSendState) sendState();	
 }
 //================================================================================
-// assuming 2 HATs are connected to one 8bit port/groupoped into 8bit byte
+// assuming 2 HATs are connected to one 8bit port/groupped into 8bit byte
 // (Right, Down, Left, Up, Hat0 Hat1)
 // 7   6   5   4   3   2   1   0
 // R1  D1  L1  U1  R0  D0  L0  U0
