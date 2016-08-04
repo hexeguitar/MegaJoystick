@@ -393,8 +393,8 @@ void loop()
 	//(Right, Down, Left, Up, Hat0 Hat1)
 	// 7   6   5   4   3   2   1   0
 	// R1  D1  L1  U1  R0  D0  L0  U0
-	Joystick.setHatSwitch(0,readMCP23017(MCP1_SLAVE_ADDR));		//wpisane beda HAT0 i HAT1
-	Joystick.setHatSwitch(2,readMCP23017(MCP1_SLAVE_ADDR)>>8);	// HAT2 i HAT3
+	Joystick.set2HatSwitch(0,readMCP23017(MCP1_SLAVE_ADDR));		//wpisane beda HAT0 i HAT1
+	Joystick.set2HatSwitch(2,readMCP23017(MCP1_SLAVE_ADDR)>>8);	// HAT2 i HAT3
 #endif
 #ifdef HAT_TEST_16BIT
 	//### Metoda 4 ###
