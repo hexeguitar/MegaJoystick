@@ -28,6 +28,7 @@ setButtonBank8		KEYWORD2
 setButtonBank16		KEYWORD2
 setSlider			KEYWORD2
 setHatSwitch		KEYWORD2
+set2HatSwitch		KEYWORD2
 set4HatSwitch		KEYWORD2
 getXAxis			KEYWORD2
 getYAxis			KEYWORD2
