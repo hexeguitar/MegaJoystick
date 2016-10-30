@@ -383,7 +383,7 @@ void MegaJoystick_::set4HatSwitch(uint16_t data)
 	if (autoSendState) sendState();	
 }
 //================================================================================
-// using gameboy mini joystick as HAT switch, reqzured two ADC inputs  
+// using gameboy mini joystick as HAT switch, requires two ADC inputs  
 void MegaJoystick_::setHatSwitchAnalog(int8_t hatSwitchIndex, int8_t xPin, int8_t yPin, uint16_t threshold)
 {
 	uint16_t x = 0, y = 0;
