@@ -166,6 +166,7 @@ void MegaJoystick_::setAutoSend(bool state)
 //================================================================================
 void MegaJoystick_::setButton(uint8_t button, uint8_t value)
 {
+    if (button>127)	return; 
 	if (value == 0)
 	{
 		releaseButton(button);
