@@ -131,18 +131,19 @@ MegaJoystick_::MegaJoystick_()
 	static HIDSubDescriptor node(_hidReportDescriptor, sizeof(_hidReportDescriptor));
 	HID().AppendDescriptor(&node);
 	
-	uint8_t i; 
+	uint8_t i = 0; 
 	//init axis & rotation
 	for (i=AXIS_ADDR;i<SLIDER_ADDR;i++)
 	{
 		analog[i] = 32768;
 	}
 	//init sliders to 0
-	for (i=SLIDER_ADDR;i<24;i++)
+	for (i=SLIDER_ADDR;i<(sizeof(analog)/sizeof(analog[0]));i++)
 	{
 		analog[i] = 0;
 	}
 	
+
 	hatSwitch[0] = 0x0F;
 	hatSwitch[1] = 0x0F;
 	hatSwitch[2] = 0x0F;
@@ -442,6 +443,8 @@ void MegaJoystick_::sendState()
 	uint8_t data[JOYSTICK_STATE_SIZE];
 	uint8_t i;
 	
+
+
 	//copy 16 bytes with button states
 	for (i=BUTTON_DATA_OFFSET;i<16;i++)
 	{
@@ -449,7 +452,7 @@ void MegaJoystick_::sendState()
 	}
 	
 	//Axis
-	for (i=0;i<24;i++)
+	for (i=0;i<(sizeof(analog)/sizeof(analog[0]));i++)
 	{
 		data[(AXIS_DATA_OFFSET+(i<<1))] = analog[i];
 		data[(AXIS_DATA_OFFSET+(i<<1)+1)] = analog[i]>>8;
